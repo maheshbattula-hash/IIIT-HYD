@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "dataContractSpecification": "0.9.3",
+  "info": {
+    "title": "Collections360GoldenCustomerDataProduct",
+    "version": "2.4.0",
+    "description": "Enterprise Golden Collections 360 Customer and Delinquency Data Contract. Defines schema, data quality thresholds, SLA, and permitted operational AI uses.",
+    "owner": "Collections Risk & Data Platform Team",
+    "contact": "data-governance@collectiq.internal",
+    "lastUpdated": "2026-10-02"
+  },
+  "serviceLevelAgreement": {
+    "freshness": "Hourly batch + CDC streaming (max lag 15 minutes)",
+    "availability": "99.9% uptime",
+    "retention": "7 years audit compliance"
+  },
+  "qualityRules": [
+    {
+      "dimension": "Completeness",
+      "target": ">= 95%",
+      "description": "Required fields (customer_id, name, primary_phone, segment, total_outstanding, dpd) must not be null."
+    },
+    {
+      "dimension": "Uniqueness",
+      "target": ">= 99%",
+      "description": "Primary keys and normalized identity hashes must have 0 unresolved duplicates in Golden store."
+    },
+    {
+      "dimension": "Validity",
+      "target": ">= 98%",
+      "description": "Phone numbers must match E.164 regex, email format RFC 5322, DPD >= 0, and bureau scores between 300 and 900."
+    },
+    {
+      "dimension": "Consistency",
+      "target": ">= 97%",
+      "description": "Total outstanding debt in Collections 360 must match the exact sum of associated cards and loans."
+    },
+    {
+      "dimension": "Freshness",
+      "target": ">= 99%",
+      "description": "Records refreshed within SLA timestamp window (< 24 hours)."
+    }
+  ],
+  "permittedUses": [
+    "Customer contact channel optimization and scheduling",
+    "Next Best Action (NBA) agent recommendation with mandatory human review",
+    "Portfolio roll-rate delinquency monitoring and analytics",
+    "Post-call interaction summarization and compliance audit",
+    "Controlled natural language queries and RAG retrieval"
+  ],
+  "prohibitedUses": [
+    "Adverse credit decisions utilizing protected demographic attributes (gender, religion, ethnicity)",
+    "Autonomous execution of legal notices or field dispatch without human approval",
+    "Sharing customer PII or financial details outside authenticated RBAC roles"
+  ],
+  "schema": {
+    "type": "object",
+    "required": ["customer_id", "name", "primary_phone", "customer_segment", "total_outstanding", "days_past_due", "collection_bucket"],
+    "properties": {
+      "customer_id": { "type": "string", "pattern": "^CUST-[0-9]{5}$" },
+      "name": { "type": "string", "minLength": 2 },
+      "primary_phone": { "type": "string", "pattern": "^\\+?[0-9]{10,14}$" },
+      "customer_segment": { "type": "string", "enum": ["Salaried Prime", "Self-Employed", "SME", "Affluent", "Gig Worker"] },
+      "total_outstanding": { "type": "number", "minimum": 0 },
+      "days_past_due": { "type": "integer", "minimum": 0 },
+      "collection_bucket": { "type": "string", "enum": ["B0 (Current)", "B1 (1-30)", "B2 (31-60)", "B3 (61-90)", "B4 (90+)"] },
+      "risk_tier": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+      "ptp_status": { "type": "string", "enum": ["NO_PTP", "PROMISED", "BROKEN", "HONORED"] }
+    }
+  }
+}
